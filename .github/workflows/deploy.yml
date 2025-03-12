@@ -16,20 +16,27 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.EC2_SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
 
       - name: Deploy Application to EC2
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
+          ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
           set -e
+          
+          # Ensure app directory exists
           mkdir -p ~/app
           cd ~/app
           
-          # Clone if the repo doesn't exist, otherwise pull the latest changes
+          # Clone using SSH if repo does not exist
           if [ ! -d "app" ]; then
-            git clone git@github.com:deep1172/proshop.git app
+            git clone git@github.com:your-username/your-repo.git app
           fi
           cd app
+          
+          # Ensure GitHub host key is trusted
+          ssh-keyscan github.com >> ~/.ssh/known_hosts
+
+          # Pull latest changes
           git pull origin main
           
           # Ensure Docker Compose is installed
@@ -37,7 +44,6 @@ jobs:
             sudo apt update && sudo apt install -y docker-compose
           fi
           
-          # Stop existing containers and redeploy
           docker-compose down
           docker-compose up -d --build
           EOF
