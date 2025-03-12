@@ -23,7 +23,11 @@ jobs:
           ssh -o StrictHostKeyChecking=no -i ~/.ssh/id_rsa ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
           set -e
           
-          # Ensure app directory exists
+          # Ensure SSH key is in place
+          eval $(ssh-agent -s)
+          ssh-add ~/.ssh/id_rsa
+
+          # Ensure the app directory exists
           mkdir -p ~/app
           cd ~/app
           
@@ -33,16 +37,8 @@ jobs:
           fi
           cd app
           
-          # Ensure GitHub host key is trusted
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-
           # Pull latest changes
           git pull origin main
-          
-          # Ensure Docker Compose is installed
-          if ! command -v docker-compose &> /dev/null; then
-            sudo apt update && sudo apt install -y docker-compose
-          fi
           
           docker-compose down
           docker-compose up -d --build
